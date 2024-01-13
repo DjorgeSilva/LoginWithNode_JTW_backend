@@ -48,9 +48,35 @@ app.post("/auth/register", async (req, res, next) => {
     });
   }
 
-  return res.status(200).json({
-    msg: "user created successfully",
+  //check if user exists
+  const userExists = await UserModel.findOne({
+    email,
   });
+
+  if (userExists) {
+    return res.status(422).json({
+      msg: "email is already in use",
+    });
+  }
+
+  // create and save user with encrypted password
+  const hash = await bcrypt.genSalt(12);
+  const hashedPassword = await bcrypt.hash(password, hash);
+
+  const newUser = new UserModel({
+    name,
+    email,
+    password: hashedPassword,
+  });
+
+  try {
+    newUser.save();
+  } catch (e) {
+    return res.status(500).json({
+      error: "error when posting new user",
+    });
+  }
+  next();
 });
 
 mongoose
